@@ -1,59 +1,23 @@
 import { Test, TestingModule } from '@nestjs/testing'
 import { UsersController } from '../controller/users.controller'
 import { UsersService } from '../service/users.service'
-import { JwtModule, JwtService } from '@nestjs/jwt'
+import { JwtModule } from '@nestjs/jwt'
 import { JwtAuthGuard } from '../../auth/guards/jwtAuth.guard'
 import { RolesGuard } from '../../auth/guards/roles.guard'
-import exp from 'constants'
-import { CreateUserDto } from '../dto/create-user.dto'
-import { AddRoleDto } from '../dto/add-role.dto'
-import { UpdateUserDto } from '../dto/update-user.dto'
-import { BanUserDto } from '../dto/ban-user.dto'
-import { User } from '../model/user.entity'
+import { mockUsersService as createMockUsersService } from './support/mocks'
+import {
+  banUserDtoStub,
+  createUserDtoStub,
+  updateUserDtoStub,
+  usersArrayStub,
+  userStub,
+} from './support/stubs'
+import { addRoleDtoStub } from '../../roles/spec/support/stubs'
 
 describe('UsersController', () => {
   let controller: UsersController
 
-  const createDto: CreateUserDto = {
-    email: 'blablabla@gmail.com',
-    password: '12345678',
-  }
-
-  const addRoleDto: AddRoleDto = {
-    name: 'asfs',
-  }
-
-  const updateDto: UpdateUserDto = {
-    email: 'badsfas@gmail.com',
-  }
-
-  const banUserDto: BanUserDto = {
-    reason: 'bad behaviour',
-  }
-
-  const mockUser: User = {
-    banReason: '',
-    banned: false,
-    email: 'blablabla@gmail.com ',
-    id: 1,
-    password: '12345678',
-    roles: [],
-    todos: [],
-    userRoles: [],
-  }
-
-  const mockUsers = [new User()]
-
-  const mockUsersService = {
-    create: jest.fn().mockReturnValue(mockUser),
-    findAll: jest.fn().mockReturnValue(mockUsers),
-    findOne: jest.fn().mockReturnValue(mockUser),
-    update: jest.fn().mockReturnValue(mockUser),
-    remove: jest.fn().mockReturnValue(mockUser),
-    addRole: jest.fn().mockReturnValue(mockUser),
-    banUser: jest.fn().mockReturnValue(mockUser),
-    save: jest.fn().mockReturnValue(mockUser),
-  }
+  const mockUsersService = createMockUsersService()
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -85,8 +49,8 @@ describe('UsersController', () => {
 
   describe('create', () => {
     it('should create a new user', async () => {
-      expect(await controller.create(createDto)).toEqual(mockUser)
-      expect(mockUsersService.create).toHaveBeenCalledWith(createDto)
+      expect(await controller.create(createUserDtoStub)).toEqual(userStub)
+      expect(mockUsersService.create).toHaveBeenCalledWith(createUserDtoStub)
     })
 
     it('should give access only to ADMIN role', () => {
@@ -97,7 +61,7 @@ describe('UsersController', () => {
 
   describe('findAll', () => {
     it('should return all users', async () => {
-      expect(await controller.findAll()).toEqual(mockUsers)
+      expect(await controller.findAll()).toEqual(usersArrayStub)
       expect(mockUsersService.findAll).toHaveBeenCalled()
     })
 
@@ -109,7 +73,7 @@ describe('UsersController', () => {
 
   describe('findOne', () => {
     it('should return a user', async () => {
-      expect(await controller.findOne('1')).toEqual(mockUser)
+      expect(await controller.findOne('1')).toEqual(userStub)
       expect(mockUsersService.findOne).toHaveBeenCalledWith(1)
     })
 
@@ -121,8 +85,8 @@ describe('UsersController', () => {
 
   describe('update', () => {
     it('should update a user', async () => {
-      expect(await controller.update('1', updateDto)).toEqual(mockUser)
-      expect(mockUsersService.update).toHaveBeenCalledWith(1, updateDto)
+      expect(await controller.update('1', updateUserDtoStub)).toEqual(userStub)
+      expect(mockUsersService.update).toHaveBeenCalledWith(1, updateUserDtoStub)
     })
 
     it('should give access only to ADMIN role', () => {
@@ -133,7 +97,7 @@ describe('UsersController', () => {
 
   describe('remove', () => {
     it('should update a user', async () => {
-      expect(await controller.remove('1')).toEqual(mockUser)
+      expect(await controller.remove('1')).toEqual(userStub)
       expect(mockUsersService.remove).toHaveBeenCalledWith(1)
     })
 
@@ -145,10 +109,10 @@ describe('UsersController', () => {
 
   describe('addRole', () => {
     it('should add role to a user', async () => {
-      expect(await controller.addRole(addRoleDto, '1')).toEqual(mockUser)
+      expect(await controller.addRole(addRoleDtoStub, '1')).toEqual(userStub)
       expect(mockUsersService.addRole).toHaveBeenCalledWith({
         userID: 1,
-        ...addRoleDto,
+        ...addRoleDtoStub,
       })
     })
 
@@ -160,10 +124,10 @@ describe('UsersController', () => {
 
   describe('banUser', () => {
     it('should ban user', async () => {
-      expect(await controller.banUser(banUserDto, '1')).toEqual(mockUser)
+      expect(await controller.banUser(banUserDtoStub, '1')).toEqual(userStub)
       expect(mockUsersService.banUser).toHaveBeenCalledWith({
         id: 1,
-        ...banUserDto,
+        ...banUserDtoStub,
       })
     })
 

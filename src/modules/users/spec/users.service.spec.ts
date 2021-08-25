@@ -3,63 +3,26 @@ import { UsersService } from '../service/users.service'
 import { getRepositoryToken } from '@nestjs/typeorm'
 import { User } from '../model/user.entity'
 import { RolesService } from '../../roles/service/roles.service'
-import { CreateUserDto } from '../dto/create-user.dto'
-import { UpdateUserDto } from '../dto/update-user.dto'
 import { AddRoleDto } from '../dto/add-role.dto'
-import { BanUserDto } from '../dto/ban-user.dto'
+import { mockUserRepo as createMockUserRepo } from './support/mocks'
+import { mockRolesService as createMockRolesService } from '../../roles/spec/support/mocks'
+import {
+  userStub,
+  usersArrayStub,
+  createUserDtoStub,
+  updateUserDtoStub,
+  banUserDtoStub,
+} from './support/stubs'
+import {
+  addRoleDtoStub,
+  anotherRoleStub,
+  roleStub,
+} from '../../roles/spec/support/stubs'
 
 describe('UsersService', () => {
   let service: UsersService
-
-  const createDto: CreateUserDto = {
-    email: 'blablabla@gmail.com',
-    password: '12345678',
-  }
-
-  const addRoleDto: AddRoleDto = {
-    name: 'asfs',
-  }
-
-  const updateDto: UpdateUserDto = {
-    email: 'badsfas@gmail.com',
-  }
-
-  const banUserDto: BanUserDto = {
-    reason: 'bad behaviour',
-  }
-
-  const mockUser: User = {
-    banReason: '',
-    banned: false,
-    email: 'blablabla@gmail.com ',
-    id: 1,
-    password: '12345678',
-    roles: [],
-    todos: [],
-    userRoles: [],
-  }
-
-  const mockUsers = [new User()]
-
-  const mockUserRepo = {
-    create: jest.fn().mockReturnValue(mockUser),
-    save: jest.fn().mockReturnValue(mockUser),
-    find: jest.fn().mockReturnValue(mockUsers),
-    findOne: jest.fn().mockReturnValue(mockUser),
-    update: jest.fn(),
-    createQueryBuilder: jest.fn(() => ({
-      delete: jest.fn().mockReturnThis(),
-      returning: jest.fn().mockReturnThis(),
-      whereInIds: jest.fn().mockReturnThis(),
-      execute: jest.fn().mockReturnValue({ raw: [mockUser] }),
-    })),
-  }
-
-  const mockRole = { name: 'USER', description: 'user' }
-  const mockSecondRole = { name: 'second role', description: 'blablasdfas' }
-  const mockRolesService = {
-    getRoleByName: jest.fn().mockReturnValue(mockRole),
-  }
+  const mockUserRepo = createMockUserRepo()
+  const mockRolesService = createMockRolesService()
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -72,6 +35,8 @@ describe('UsersService', () => {
     }).compile()
 
     service = module.get<UsersService>(UsersService)
+
+    jest.clearAllMocks()
   })
 
   it('should be defined', () => {
@@ -79,36 +44,42 @@ describe('UsersService', () => {
   })
 
   describe('create', () => {
+    let user: User
+
+    beforeEach(async () => {
+      user = await service.create(createUserDtoStub)
+    })
+
     it('should create a new user', async () => {
-      expect(await service.create(createDto)).toEqual(mockUser)
+      expect(user).toEqual(userStub)
     })
 
     it('should assign a basic USER role to a new user', async () => {
       expect(mockRolesService.getRoleByName).toHaveBeenCalledWith('USER')
       expect(mockUserRepo.save).toHaveBeenCalledWith({
-        ...mockUser,
-        roles: [mockRole],
+        ...userStub,
+        roles: [roleStub],
       })
     })
   })
 
   describe('findAll', () => {
     it('should find all users', async () => {
-      expect(await service.findAll()).toEqual(mockUsers)
+      expect(await service.findAll()).toEqual(usersArrayStub)
       expect(mockUserRepo.find).toHaveBeenCalledWith({})
     })
   })
 
   describe('findOne', () => {
     it('should return a user', async () => {
-      expect(await service.findOne(1)).toEqual(mockUser)
+      expect(await service.findOne(1)).toEqual(userStub)
       expect(mockUserRepo.findOne).toHaveBeenCalledWith(1)
     })
   })
 
   describe('findOneByEmail', () => {
     it('should find user by email', async () => {
-      expect(await service.findOneByEmail('email@gmail.com')).toEqual(mockUser)
+      expect(await service.findOneByEmail('email@gmail.com')).toEqual(userStub)
       expect(mockUserRepo.findOne).toHaveBeenCalledWith({
         where: { email: 'email@gmail.com' },
       })
@@ -117,27 +88,27 @@ describe('UsersService', () => {
 
   describe('update', () => {
     it('should update user ', async () => {
-      expect(await service.update(1, updateDto)).toEqual(mockUser)
-      expect(mockUserRepo.update).toHaveBeenCalledWith(1, updateDto)
+      expect(await service.update(1, updateUserDtoStub)).toEqual(userStub)
+      expect(mockUserRepo.update).toHaveBeenCalledWith(1, updateUserDtoStub)
     })
   })
 
   describe('delete', () => {
     it('should delete user ', async () => {
-      expect(await service.remove(1)).toEqual(mockUser)
+      expect(await service.remove(1)).toEqual(userStub)
       expect(mockUserRepo.createQueryBuilder).toHaveBeenCalled()
     })
   })
 
   describe('addRole', () => {
     it('should add role to user', async () => {
-      mockRolesService.getRoleByName.mockReturnValue(mockSecondRole)
-      const updateRoles = [...mockUser.userRoles, mockSecondRole.name]
+      mockRolesService.getRoleByName.mockReturnValue(anotherRoleStub)
+      const updateRoles = [...userStub.userRoles, anotherRoleStub.name]
 
-      expect(await service.addRole(addRoleDto)).toEqual(mockUser)
+      expect(await service.addRole(addRoleDtoStub)).toEqual(userStub)
 
       expect(mockUserRepo.save).toHaveBeenCalledWith({
-        ...mockUser,
+        ...userStub,
         userRoles: updateRoles,
       })
     })
@@ -145,12 +116,12 @@ describe('UsersService', () => {
 
   describe('banUser', () => {
     it('should ban user', async () => {
-      expect(await service.banUser(banUserDto)).toEqual(mockUser)
+      expect(await service.banUser(banUserDtoStub)).toEqual(userStub)
 
       expect(mockUserRepo.save).toHaveBeenCalledWith({
-        ...mockUser,
+        ...userStub,
         banned: true,
-        banReason: banUserDto.reason,
+        banReason: banUserDtoStub.reason,
       })
     })
   })
