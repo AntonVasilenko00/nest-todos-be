@@ -9,7 +9,7 @@ export const anotherRoleStub = {
 }
 
 export const rolesArrayStub = [roleStub]
-
+export const roleNamesArrayStub = [roleStub.name]
 export const addRoleDtoStub: AddRoleDto = {
   name: 'asfs',
 }

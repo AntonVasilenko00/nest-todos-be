@@ -8,6 +8,9 @@ import { RolesService } from '../../roles/service/roles.service'
 import { Role } from '../../roles/model/roles.entity'
 import { CreateUserDto } from '../../users/dto/create-user.dto'
 import * as bcrypt from 'bcrypt'
+import { mockUserRepo as createMockUserRepo } from '../../users/spec/support/mocks'
+import { mockRolesRepo as createMockRolesRepo } from '../../roles/spec/support/mocks'
+import { createUserDtoStub, userStub } from '../../users/spec/support/stubs'
 
 jest.mock('bcrypt')
 
@@ -15,31 +18,8 @@ describe('AuthService', () => {
   let service: AuthService
   let bcryptCompare: jest.Mock
 
-  const dto: CreateUserDto = {
-    email: 'abcdefg@gmail.com',
-    password: '12345678',
-  }
-
-  const mockUsersRepository = {
-    create: jest.fn((dto: CreateUserDto) => {
-      return { id: 1, ...dto }
-    }),
-    save: jest.fn((dto: CreateUserDto) => {
-      return { id: 1, ...dto }
-    }),
-    find: jest.fn(() => {}),
-    findOne: jest.fn((id: number) => {
-      return { id, email: 'abcdefg@gmail.com', password: '12345678' }
-    }),
-    delete: jest.fn(() => {}),
-    update: jest.fn(() => {}),
-  }
-
-  const mockRolesRepository = {
-    save: jest.fn(() => {}),
-    find: jest.fn(() => {}),
-    findOne: jest.fn(() => {}),
-  }
+  const mockUsersRepository = createMockUserRepo()
+  const mockRolesRepository = createMockRolesRepo()
 
   beforeEach(async () => {
     bcryptCompare = jest.fn().mockReturnValue(false)
@@ -70,19 +50,23 @@ describe('AuthService', () => {
   it('should login user', async () => {
     bcryptCompare.mockReturnValue(true)
 
-    expect(await service.login(dto)).toEqual({ token: expect.any(String) })
+    expect(await service.login(createUserDtoStub)).toEqual({
+      token: expect.any(String),
+    })
   })
 
   it('should signup a new user', async () => {
     mockUsersRepository.findOne.mockReturnValue(undefined)
 
-    expect(await service.signup(dto)).toEqual({ token: expect.any(String) })
+    expect(await service.signup(createUserDtoStub)).toEqual({
+      token: expect.any(String),
+    })
   })
 
   describe('when signing up with an existing email', () => {
     it('should throw a bad request error', async () => {
-      mockUsersRepository.findOne.mockReturnValue({ id: 1, ...dto })
-      await expect(() => service.signup(dto)).rejects.toThrow(
+      mockUsersRepository.findOne.mockReturnValue(userStub)
+      await expect(() => service.signup(createUserDtoStub)).rejects.toThrow(
         'User with such email already exists',
       )
     })
@@ -91,9 +75,9 @@ describe('AuthService', () => {
   describe('when logging in with an incorrect password', () => {
     it('should throw a bad request error', async () => {
       bcryptCompare.mockReturnValue(false)
-      mockUsersRepository.findOne.mockReturnValue({ id: 1, ...dto })
+      mockUsersRepository.findOne.mockReturnValue(userStub)
 
-      await expect(() => service.login(dto)).rejects.toThrow(
+      await expect(() => service.login(createUserDtoStub)).rejects.toThrow(
         'Incorrect email or password',
       )
     })

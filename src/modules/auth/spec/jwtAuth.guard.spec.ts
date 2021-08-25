@@ -1,25 +1,25 @@
 import { JwtAuthGuard } from '../guards/jwtAuth.guard'
 import { JwtModule, JwtService } from '@nestjs/jwt'
 import { UsersService } from '../../users/service/users.service'
-import { ExecutionContext, UnauthorizedException } from '@nestjs/common'
+import { UnauthorizedException } from '@nestjs/common'
 import { RolesService } from '../../roles/service/roles.service'
 import { User } from '../../users/model/user.entity'
-import { Repository } from 'typeorm'
 import { Role } from '../../roles/model/roles.entity'
-import { createMock } from '@golevelup/ts-jest'
 import { Test, TestingModule } from '@nestjs/testing'
 import { getRepositoryToken } from '@nestjs/typeorm'
+import { mockUserRepo as createMockUserRepo } from '../../users/spec/support/mocks'
+import { mockRolesRepo as createMockRolesRepo } from '../../roles/spec/support/mocks'
+import {
+  mockExecutionContext,
+  mockJwtService as createMockJwtService,
+} from './support/mocks'
 
 describe('JwtAuthGuard', () => {
   let guard: JwtAuthGuard
-  const mockUserRepo = {
-    findOne: jest.fn().mockReturnValue({ id: 1, banned: false }),
-  }
-  const mockRolesRepo = new Repository<Role>()
-  const mockJwtService = {
-    verify: jest.fn().mockReturnValue({ id: 1, banned: false }),
-  }
-  let mockContext = createMock<ExecutionContext>()
+
+  const mockUserRepo = createMockUserRepo()
+  const mockRolesRepo = createMockRolesRepo()
+  const mockJwtService = createMockJwtService()
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -49,40 +49,27 @@ describe('JwtAuthGuard', () => {
   describe('canActivate', () => {
     describe('when authorization token is invalid', () => {
       it('should throw unauthorized exception', async () => {
-        mockContext.switchToHttp().getRequest.mockReturnValue({
-          headers: {
-            authorization: 'asdfsaf',
-          },
-        })
-        await expect(() => guard.canActivate(mockContext)).rejects.toThrow(
-          UnauthorizedException,
-        )
+        await expect(() =>
+          guard.canActivate(mockExecutionContext.withInvalidToken),
+        ).rejects.toThrow(UnauthorizedException)
       })
     })
 
     describe('when authorization token is valid', () => {
       it('should return true', async () => {
-        mockContext.switchToHttp().getRequest.mockReturnValue({
-          headers: {
-            authorization: 'Bearer fasdfsadf',
-          },
-        })
-        expect(await guard.canActivate(mockContext)).toEqual(true)
+        expect(
+          await guard.canActivate(mockExecutionContext.withValidToken),
+        ).toEqual(true)
       })
     })
 
     describe('when user is banned', () => {
       it('should send proper message', async () => {
         mockUserRepo.findOne.mockReturnValue({ banned: true })
-        mockContext.switchToHttp().getRequest.mockReturnValue({
-          headers: {
-            authorization: 'Bearer fasdfsadf',
-          },
-        })
 
-        await expect(() => guard.canActivate(mockContext)).rejects.toThrow(
-          'Your account was banned by admin',
-        )
+        await expect(() =>
+          guard.canActivate(mockExecutionContext.withValidToken),
+        ).rejects.toThrow('Your account was banned by admin')
       })
     })
   })

@@ -1,41 +1,27 @@
 import { Test, TestingModule } from '@nestjs/testing'
 import { AuthController } from '../controller/auth.controller'
 import { AuthService } from '../service/auth.service'
-import { UsersService } from '../../users/service/users.service'
-import { JwtModule, JwtService } from '@nestjs/jwt'
-import { forwardRef } from '@nestjs/common'
-import { UsersModule } from '../../users/users.module'
-import { getRepositoryToken, TypeOrmModule } from '@nestjs/typeorm'
-import { Role } from '../../roles/model/roles.entity'
-import { User } from '../../users/model/user.entity'
-import { AuthModule } from '../auth.module'
-import { RolesModule } from '../../roles/roles.module'
-import TypeormConfig from '../../../config/ormconfig'
-import { Todo } from '../../todos/model/todos.entity'
 import { CreateUserDto } from '../../users/dto/create-user.dto'
+import { mockAuthService as createMockAuthService } from './support/mocks'
 
 describe('AuthController', () => {
   let controller: AuthController
 
-  const mockAuthService = {
-    signup: jest.fn((dto: CreateUserDto) => {
-      return { token: 'fasdfasdf' }
-    }),
-
-    login: jest.fn((dto: CreateUserDto) => {
-      return { token: 'fasdfasdf' }
-    }),
-  }
+  const mockAuthService = createMockAuthService()
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       imports: [],
-      providers: [AuthService],
+      providers: [
+        AuthService,
+        {
+          provide: AuthService,
+          useValue: mockAuthService,
+        },
+      ],
       controllers: [AuthController],
     })
-      .overrideProvider(AuthService)
-      .useValue(mockAuthService)
-      .compile()
+    .compile()
 
     controller = module.get<AuthController>(AuthController)
   })
