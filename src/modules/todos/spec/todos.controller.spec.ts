@@ -1,35 +1,22 @@
 import { Test, TestingModule } from '@nestjs/testing'
 import { TodosController } from '../controller/todos.controller'
-import { Todo } from '../model/todos.entity'
 import { TodosService } from '../service/todos.service'
 import { UsersService } from '../../users/service/users.service'
-import { getRepositoryToken } from '@nestjs/typeorm'
-import { User } from '../../users/model/user.entity'
-import { CreateTodoDto, UpdateTodoDto } from '../dto'
-import { HttpException, NotFoundException } from '@nestjs/common'
+import { HttpException } from '@nestjs/common'
+import { mockTodosService as createMockTodoService } from './support/mocks'
+import { mockUsersService as createMockUsersService } from '../../users/spec/support/mocks'
+import {
+  createTodoDtoStub,
+  todosArrayStub,
+  todoStub,
+  updateTodoDtoStub,
+} from './support/stubs'
 
 describe('TodosController', () => {
   let controller: TodosController
 
-  const someTodos: Todo[] = [new Todo()]
-  const mockTodo: Todo = {
-    id: 1,
-    userID: 1,
-    isCompleted: false,
-    text: 'asdf',
-    user: new User(),
-  }
-  const mockTodosService = {
-    findAll: jest.fn().mockReturnValue(someTodos),
-    findOne: jest.fn().mockReturnValue(mockTodo),
-    create: jest.fn().mockReturnValue(mockTodo),
-    update: jest.fn().mockReturnValue(mockTodo),
-    delete: jest.fn().mockReturnValue(mockTodo),
-  }
-
-  const createDto: CreateTodoDto = { userID: 1, text: 'asdf' }
-  const updateDto: UpdateTodoDto = { isCompleted: false }
-  const mockUsersService = {}
+  const mockTodosService = createMockTodoService()
+  const mockUsersService = createMockUsersService()
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -41,9 +28,7 @@ describe('TodosController', () => {
     }).compile()
 
     controller = module.get<TodosController>(TodosController)
-  })
 
-  afterEach(() => {
     jest.clearAllMocks()
   })
 
@@ -53,14 +38,14 @@ describe('TodosController', () => {
 
   describe('getAllAction', () => {
     it('should return all todos', async () => {
-      expect(await controller.getAllAction()).toEqual(someTodos)
+      expect(await controller.getAllAction()).toEqual(todosArrayStub)
       expect(mockTodosService.findAll).toHaveBeenCalled()
     })
   })
 
   describe('getOneAction', () => {
     it('should return one todo', async () => {
-      expect(await controller.getOneAction('1')).toEqual(mockTodo)
+      expect(await controller.getOneAction('1')).toEqual(todoStub)
       expect(mockTodosService.findOne).toHaveBeenCalledWith(1)
     })
 
@@ -74,43 +59,47 @@ describe('TodosController', () => {
 
   describe('createAction', () => {
     it('should create a todo', async () => {
-      expect(await controller.createAction(createDto)).toEqual(mockTodo)
-      expect(mockTodosService.create).toHaveBeenCalledWith(createDto)
+      expect(await controller.createAction(createTodoDtoStub)).toEqual(todoStub)
+      expect(mockTodosService.create).toHaveBeenCalledWith(createTodoDtoStub)
     })
   })
 
   describe('put action', () => {
     it('should update a todo', async () => {
-      expect(await controller.putAction(updateDto, '1')).toEqual(mockTodo)
-      expect(mockTodosService.update).toHaveBeenCalledWith(1, updateDto)
+      expect(await controller.putAction(updateTodoDtoStub, '1')).toEqual(
+        todoStub,
+      )
+      expect(mockTodosService.update).toHaveBeenCalledWith(1, updateTodoDtoStub)
     })
 
     it('should throw 404 error when user is not found', async () => {
       mockTodosService.update.mockReturnValue(undefined)
-      await expect(() => controller.putAction(updateDto, '1')).rejects.toThrow(
-        HttpException,
-      )
+      await expect(() =>
+        controller.putAction(updateTodoDtoStub, '1'),
+      ).rejects.toThrow(HttpException)
     })
   })
 
   describe('patch action', () => {
     it('should update a todo', async () => {
-      mockTodosService.update.mockReturnValue(mockTodo)
-      expect(await controller.patchAction(updateDto, '1')).toEqual(mockTodo)
-      expect(mockTodosService.update).toHaveBeenCalledWith(1, updateDto)
+      mockTodosService.update.mockReturnValue(todoStub)
+      expect(await controller.patchAction(updateTodoDtoStub, '1')).toEqual(
+        todoStub,
+      )
+      expect(mockTodosService.update).toHaveBeenCalledWith(1, updateTodoDtoStub)
     })
 
     it('should throw 404 error when user is not found', async () => {
       mockTodosService.update.mockReturnValue(undefined)
-      await expect(() => controller.putAction(updateDto, '1')).rejects.toThrow(
-        HttpException,
-      )
+      await expect(() =>
+        controller.putAction(updateTodoDtoStub, '1'),
+      ).rejects.toThrow(HttpException)
     })
   })
 
   describe('delete action', () => {
     it('return deleted a todo', async () => {
-      expect(await controller.deleteAction('1')).toEqual(mockTodo)
+      expect(await controller.deleteAction('1')).toEqual(todoStub)
       expect(mockTodosService.delete).toHaveBeenCalledWith(1)
     })
 
